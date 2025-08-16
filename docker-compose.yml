@@ -1,0 +1,42 @@
+services:
+  app:
+    build: .
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+      - redis
+    environment:
+      DATABASE_URL: postgresql+asyncpg://user:password@db/moderator_db
+      REDIS_URL: redis://redis:6379/0
+      LLM_API_KEY: your_gemini_api_key
+    volumes:
+      - ./app:/app/app
+
+  db:
+    image: postgres:15
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+    environment:
+      POSTGRES_DB: moderator_db
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+
+  redis:
+    image: redis:7
+
+  celery_worker:
+    build: .
+    command: celery -A app.tasks.image_moderation worker --loglevel=info
+    depends_on:
+      - redis
+      - db
+    environment:
+      DATABASE_URL: postgresql+asyncpg://user:password@db/moderator_db
+      REDIS_URL: redis://redis:6379/0
+      LLM_API_KEY: AIzaSyAJMpNEjqw6IdZT6GSDwD2zZ1bmu1Zf--w
+    volumes:
+      - ./app:/app/app
+
+volumes:
+  postgres_data:
